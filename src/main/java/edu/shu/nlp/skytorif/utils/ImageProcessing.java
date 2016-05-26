@@ -61,7 +61,10 @@ public class ImageProcessing {
 		FileOutputStream output = new FileOutputStream(toImagePath);		
 		ImageIO.write(image, "jpg", output);
 	} 
-	
+	/**
+	 * 去水印的算法
+	 * @param image
+	 */
 	private static void verticalAlgorithm(BufferedImage image){
 		
 		int height = logo_height; 
