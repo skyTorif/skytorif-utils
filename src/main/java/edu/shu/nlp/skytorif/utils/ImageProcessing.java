@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.MessageFormat;
 import java.util.Properties;
 
 import javax.imageio.ImageIO;
@@ -12,10 +13,15 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 图片水印处理（水印位置确定）
+ * @author Administrator
+ *
+ */
 public class ImageProcessing {
 	
 	private static final Logger logger = LoggerFactory.getLogger(ImageProcessing.class);
-	//图片纵向的像素分割数量，越大图片表现出的纵向区别越大，应小于图片的高度
+	//图片纵向的像素分割数量，越大图片表现出的纵向区别越大，即图片越模糊不能超过图片水印的高度
 	private static int pixelNumbers;
 	private static String srcImagePath;
 	private static String toImagePath;
@@ -36,6 +42,7 @@ public class ImageProcessing {
 		pixelNumbers = Integer.parseInt(prop.getProperty("pixelNumbers"));
 		srcImagePath = prop.getProperty("srcImagePath");
 		toImagePath = prop.getProperty("toImagePath");
+		toImagePath = MessageFormat.format(toImagePath, pixelNumbers);
 		logo_point_x = Integer.parseInt(prop.getProperty("logo_point_x"));
 		logo_point_y = Integer.parseInt(prop.getProperty("logo_point_y"));
 		logo_width = Integer.parseInt(prop.getProperty("logo_width"));
@@ -55,40 +62,56 @@ public class ImageProcessing {
 		
 		File imageFile = new File(srcImagePath);
 		BufferedImage image = ImageIO.read(imageFile);
-		
-		verticalAlgorithm(image);
-		
+		algorithm(image);
 		FileOutputStream output = new FileOutputStream(toImagePath);		
 		ImageIO.write(image, "jpg", output);
 	} 
 	/**
-	 * 去水印的算法
+	 * 模糊水印的算法，将水印所在长方形区域，按y轴横向分成n块长方形区域，每一块长方形区域的像素都重复最上一边的像素
 	 * @param image
 	 */
-	private static void verticalAlgorithm(BufferedImage image){
+	private static void algorithm(BufferedImage image){
+		int[] sections = constructingAnArray();
+		mainPartOfAlgorithm(sections, image);
+	}
+	/**
+	 * 构造数组，数组中保存需要重复的像素点的y轴坐标
+	 * @param length
+	 * @return
+	 */
+	private static int[] constructingAnArray(){
+		int length = (int)Math.ceil(logo_height / (double)pixelNumbers);
+		int array[] = new int[length];
 		
-		int height = logo_height; 
-		int point_y = 1; //需要重复的像素点y轴坐标的偏移量
+		for(int i = 0; i < array.length; i++){
+			if(i == 0){
+				array[i] = logo_point_y;
+			}else{
+				array[i] = pixelNumbers + array[i - 1];
+			}
+		}
 		
-		int s = (int)Math.ceil(height / (double)pixelNumbers); //数组大小
-		int[] sections = new int[s]; //数组中保存每段需要重复的像素点y轴坐标偏移量
-		int cur = 0; //数组游标
-		//构建数组
-		do{
-			sections[cur++] = point_y;
-			point_y += pixelNumbers;
-		}while(point_y <= height && cur < s);
-		//core
-		for(int i = 0; i < s; i++){
-			for(int j = logo_point_x; j < logo_point_x + logo_width; j++){
-				for(int k = 0; k < pixelNumbers; k++){
-					if(logo_point_y + sections[i] + k <= logo_point_y + logo_height){
-						image.setRGB(j, logo_point_y + sections[i] + k, image.getRGB(j, logo_point_y + sections[i]));
+		return array;
+	}
+	/**
+	 * 算法的主要处理部分
+	 * @param sections
+	 * @param image
+	 */
+	private static void mainPartOfAlgorithm(int[] sections, BufferedImage image){
+		for(int j = logo_point_x; j <= logo_point_x + logo_width; j++){
+			for(int i = 0; i < sections.length; i++){
+				if(i == sections.length - 1){
+					for(int k = sections[i]; k <= logo_point_y + logo_height; k++){
+						image.setRGB(j, k, image.getRGB(j, sections[i]));
+					}
+				}else{
+					for(int k = sections[i]; k < sections[i + 1]; k++){
+						image.setRGB(j, k, image.getRGB(j, sections[i]));
 					}
 				}
 			}
 		}
-		
 	}
 	
 	public static void main(String[] args) throws IOException{
