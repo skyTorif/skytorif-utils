@@ -1,4 +1,4 @@
-package edu.shu.nlp.skytorif.utils;
+package edu.shu.nlp.skytorif.image_util;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
