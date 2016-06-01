@@ -14,13 +14,18 @@ import javax.imageio.ImageIO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * 58图片水印处理
+ * @author skytorif
+ *
+ */
 public class WuBaImageUtils {
 	private static final Logger logger = LoggerFactory.getLogger(WuBaImageUtils.class);
-	private static int logo_height;
 	private static int logo_width;
-	private static int pixelNumbers;
-	private static int logo_point_y;
+	private static int logo_height;
+	private static int pixelNumbers; //每个重复区域纵向的像素数
 	private static int logo_point_x;
+	private static int logo_point_y;
 	private static String srcImagePath;
 	private static String toImagePath;
 	
@@ -52,17 +57,19 @@ public class WuBaImageUtils {
 		File imageFile = new File(srcImagePath);
 		try {
 			BufferedImage image = ImageIO.read(imageFile);
+			logo_point_x = image.getWidth() - 1;
+			logo_point_y = image.getHeight() - 1;
 			if(logger.isDebugEnabled()){
 				logger.debug("image_width:\t" + image.getWidth());
 				logger.debug("image_height:\t" + image.getHeight());
+				logger.debug("logo_point_x:\t" + logo_point_x);
+				logger.debug("logo_point_y:\t" + logo_point_y);
 			}
-			logo_point_y = image.getHeight() - 1;
-			logo_point_x = image.getWidth() - 1;
-			algorithm(image);
+			mainProcess(image);
 			FileOutputStream output = new FileOutputStream(toImagePath);		
 			ImageIO.write(image, "jpg", output);
 		} catch (FileNotFoundException e) {
-			logger.error(srcImagePath + "is not exist!");
+			logger.error(srcImagePath + "is error or not exist!");
 			e.printStackTrace();
 		} catch (IOException e) {
 			logger.error("文件操作出错！");
@@ -70,9 +77,9 @@ public class WuBaImageUtils {
 		}
 	}
 	
-	private static void algorithm(BufferedImage image){
+	private static void mainProcess(BufferedImage image){
 		int[] sections = constructingAnArray();
-		mainPartOfAlgorithm(sections, image);
+		removeLogoAlgorithm(sections, image);
 	}
 	
 	private static int[] constructingAnArray(){
@@ -90,7 +97,7 @@ public class WuBaImageUtils {
 		return array;
 	}
 	
-	private static void mainPartOfAlgorithm(int[] array, BufferedImage image){
+	private static void removeLogoAlgorithm(int[] array, BufferedImage image){
 		for(int j = logo_point_x; j >= logo_point_x - logo_width; j--){
 			for(int i = 0; i < array.length; i++){
 				if(i == array.length - 1){
@@ -105,6 +112,7 @@ public class WuBaImageUtils {
 			}
 		}
 	}
+	
 	public static void main(String[] args) throws IOException{
 		WuBaImageUtils.removeLogoFromImage();
 	}
